@@ -1,0 +1,210 @@
+datasource db {
+  provider = "mongodb"
+  url      = env("DB_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Job {
+  applications       Application[]
+  assignedTo         User?          @relation(name: "assignedJobs", fields: [assignedToId], references: [id])
+  assignedToId       String?        @db.ObjectId
+  associatedAgency   StaffAgency?   @relation(fields: [associatedAgencyId], references: [id])
+  associatedAgencyId String?        @unique @db.ObjectId
+  availability       Boolean?
+  completed          Boolean?
+  createdAt          DateTime       @default(now())
+  cv                 Json?
+  description        String
+  duration           String?
+  id                 String         @id @default(auto()) @map("_id") @db.ObjectId
+  isAcceptedByAgency Boolean?
+  isPaid             Boolean?
+  payRate            Float
+  payments           Payment?       @relation(fields: [paymentsId], references: [id])
+  paymentsId         String?        @unique @db.ObjectId
+  ratings            Rating[]
+  requiredSkills     Skill[]
+  status             EnumJobStatus?
+  title              String
+  updatedAt          DateTime       @updatedAt
+  user               User?          @relation(name: "JobsOnUser", fields: [userId], references: [id])
+  userId             String?        @db.ObjectId
+}
+
+model Staff {
+  availability  Boolean
+  createdAt     DateTime     @default(now())
+  cv            String
+  email         String
+  id            String       @id @default(auto()) @map("_id") @db.ObjectId
+  name          String
+  payrolls      Payroll[]
+  skills        Skill[]
+  staffAgency   StaffAgency? @relation(fields: [staffAgencyId], references: [id])
+  staffAgencyId String?      @db.ObjectId
+  updatedAt     DateTime     @updatedAt
+  user          User?
+}
+
+model Rating {
+  comment       String?
+  createdAt     DateTime @default(now())
+  entityRated   User?    @relation(name: "entityRated", fields: [entityRatedId], references: [id])
+  entityRatedId String?  @db.ObjectId
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  job           Job?     @relation(fields: [jobId], references: [id])
+  jobId         String?  @db.ObjectId
+  ratedBy       User?    @relation(name: "ratedBy", fields: [ratedById], references: [id])
+  ratedById     String?  @unique @db.ObjectId
+  ratingValue   Int?
+  updatedAt     DateTime @updatedAt
+}
+
+model Payment {
+  amount          Float?
+  createdAt       DateTime           @default(now())
+  id              String             @id @default(auto()) @map("_id") @db.ObjectId
+  job             Job?
+  status          EnumPaymentStatus?
+  transactionDate DateTime?
+  updatedAt       DateTime           @updatedAt
+}
+
+model Transaction {
+  amount          Float?
+  createdAt       DateTime                        @default(now())
+  description     String?
+  id              String                          @id @default(auto()) @map("_id") @db.ObjectId
+  metadata        Json?
+  status          EnumTransactionStatus?
+  transactionType EnumTransactionTransactionType?
+  updatedAt       DateTime                        @updatedAt
+  wallet          Wallet                          @relation(fields: [walletId], references: [id])
+  walletId        String                          @db.ObjectId
+}
+
+model Skill {
+  createdAt   DateTime @default(now())
+  description String?
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  jobs        Job?     @relation(fields: [jobsId], references: [id])
+  jobsId      String?  @db.ObjectId
+  name        String?
+  staff       Staff?   @relation(fields: [staffId], references: [id])
+  staffId     String?  @db.ObjectId
+  updatedAt   DateTime @updatedAt
+  user        User?    @relation(fields: [userId], references: [id])
+  userId      String?  @db.ObjectId
+}
+
+model Wallet {
+  balance      Float?
+  createdAt    DateTime      @default(now())
+  id           String        @id @default(auto()) @map("_id") @db.ObjectId
+  transactions Transaction[]
+  updatedAt    DateTime      @updatedAt
+  users        User[]
+}
+
+model Payroll {
+  agency       StaffAgency?       @relation(fields: [agencyId], references: [id])
+  agencyId     String?            @db.ObjectId
+  createdAt    DateTime           @default(now())
+  id           String             @id @default(auto()) @map("_id") @db.ObjectId
+  payDate      DateTime?
+  salaryAmount Float?
+  staff        Staff?             @relation(fields: [staffId], references: [id])
+  staffId      String?            @db.ObjectId
+  status       EnumPayrollStatus?
+  updatedAt    DateTime           @updatedAt
+}
+
+model StaffAgency {
+  agencyDetails Json?
+  agencyName    String?
+  applications  Application[]
+  createdAt     DateTime      @default(now())
+  employedStaff Staff[]
+  id            String        @id @default(auto()) @map("_id") @db.ObjectId
+  jobs          Job?
+  owner         User          @relation(fields: [ownerId], references: [id])
+  ownerId       String        @unique @db.ObjectId
+  payrolls      Payroll[]
+  updatedAt     DateTime      @updatedAt
+}
+
+model Application {
+  createdAt     DateTime               @default(now())
+  id            String                 @id @default(auto()) @map("_id") @db.ObjectId
+  job           Job?                   @relation(fields: [jobId], references: [id])
+  jobId         String?                @db.ObjectId
+  staffAgency   StaffAgency?           @relation(fields: [staffAgencyId], references: [id])
+  staffAgencyId String?                @db.ObjectId
+  status        EnumApplicationStatus?
+  updatedAt     DateTime               @updatedAt
+  user          User?                  @relation(fields: [userId], references: [id])
+  userId        String?                @db.ObjectId
+}
+
+model User {
+  applications  Application[]
+  assignedJobs  Job[]         @relation(name: "assignedJobs")
+  createdAt     DateTime      @default(now())
+  email         String?       @unique
+  firstName     String?
+  id            String        @id @default(auto()) @map("_id") @db.ObjectId
+  jobs          Job[]         @relation(name: "JobsOnUser")
+  lastName      String?
+  myRatings     Rating[]      @relation(name: "entityRated")
+  myStaffAgency StaffAgency?
+  name          String?
+  password      String
+  ratings       Rating?       @relation(name: "ratedBy")
+  role          EnumUserRole
+  roles         Json
+  skills        Skill[]
+  staff         Staff?        @relation(fields: [staffId], references: [id])
+  staffId       String?       @unique @db.ObjectId
+  updatedAt     DateTime      @updatedAt
+  username      String        @unique
+  wallet        Wallet?       @relation(fields: [walletId], references: [id])
+  walletId      String?       @db.ObjectId
+}
+
+enum EnumJobStatus {
+  Pending
+  Assigned
+}
+
+enum EnumPaymentStatus {
+  Pending
+  Paid
+}
+
+enum EnumTransactionStatus {
+  Pending
+  Completed
+}
+
+enum EnumTransactionTransactionType {
+  Deposit
+  Debit
+  Charges
+}
+
+enum EnumPayrollStatus {
+  Option1
+}
+
+enum EnumApplicationStatus {
+  Option1
+}
+
+enum EnumUserRole {
+  Individual
+  Staff
+  StaffAgency
+}
